@@ -1,0 +1,157 @@
+{
+  "users": [
+    {
+      "_id": "000001",
+      "email": "Jordy22@hotmail.com",
+      "firstName": "Buster",
+      "lastName": "Berge"
+    },
+    {
+      "_id": "000002",
+      "email": "Reina.Kshlerin@yahoo.com",
+      "firstName": "Josiah",
+      "lastName": "Bahringer"
+    },
+    {
+      "_id": "000003",
+      "email": "Elvie44@hotmail.com",
+      "firstName": "Vivien",
+      "lastName": "Rodriguez"
+    },
+    {
+      "_id": "000004",
+      "email": "Antonina.Jacobson@yahoo.com",
+      "firstName": "Randal",
+      "lastName": "Hintz"
+    },
+    {
+      "_id": "000005",
+      "email": "Annalise.Dickens@gmail.com",
+      "firstName": "Wanda",
+      "lastName": "DuBuque"
+    }
+  ],
+  "posts": [
+    {
+      "_id": "000001",
+      "authorId": "000003",
+      "body": "Dolores explicabo placeat cum laudantium expedita libero.",
+      "draft": true
+    },
+    {
+      "_id": "000002",
+      "authorId": "000004",
+      "body": "Voluptatem ducimus sed ad est nihil deserunt ut sint.",
+      "draft": true
+    },
+    {
+      "_id": "000003",
+      "authorId": "000003",
+      "body": "Adipisci quo adipisci sit.",
+      "draft": false
+    },
+    {
+      "_id": "000004",
+      "authorId": "000003",
+      "body": "Voluptatem ullam voluptatem enim.",
+      "draft": false
+    },
+    {
+      "_id": "000005",
+      "authorId": "000001",
+      "body": "Inventore ullam enim iusto aspernatur eius voluptates eveniet ea sit.",
+      "draft": true
+    }
+  ],
+  "comments": [
+    {
+      "_id": "000001",
+      "authorId": "minim aliqua reprehenderit labore ut",
+      "postId": "esse magna proident",
+      "body": "Accusantium repellat voluptate occaecati voluptatem.",
+      "archived": "true"
+    },
+    {
+      "_id": "000002",
+      "authorId": "commodo Ut Lorem",
+      "postId": "nisi labore nulla consequat",
+      "body": "Et alias sed ipsam velit dolores non recusandae similique.",
+      "archived": "false"
+    },
+    {
+      "_id": "000003",
+      "authorId": "Excepteur dolore ullamco officia ea",
+      "postId": "eu qui ad exercitation i",
+      "body": "Sint maiores id labore nulla quaerat fugit.",
+      "archived": "false"
+    },
+    {
+      "_id": "000004",
+      "authorId": "consectetur elit irure eu anim",
+      "postId": "magna aute do ad",
+      "body": "Eos et nobis ipsum doloremque aut.",
+      "archived": "false"
+    },
+    {
+      "_id": "000005",
+      "authorId": "Ut",
+      "postId": "sint dolor ut",
+      "body": "Tempora alias tempore occaecati.",
+      "archived": "true"
+    }
+  ],
+  "likes": [
+    {
+      "_id": "000001",
+      "authorUuid": "nulla quis aliquip",
+      "commentUuid": "exercitation amet par"
+    },
+    {
+      "_id": "000002",
+      "authorUuid": "culpa non qui",
+      "commentUuid": "do"
+    },
+    {
+      "_id": "000003",
+      "authorUuid": "sunt minim aliquip aliqua",
+      "commentUuid": "sunt sed consequat minim fugiat"
+    },
+    {
+      "_id": "000004",
+      "authorUuid": "do",
+      "commentUuid": "sunt eiusmod consectetur fugiat"
+    },
+    {
+      "_id": "000005",
+      "authorUuid": "ea nisi est",
+      "commentUuid": "dolor"
+    }
+  ],
+  "relationships": [
+    {
+      "_id": "000001",
+      "followerUuid": "undefined",
+      "followeeUuid": "undefined"
+    },
+    {
+      "_id": "000002",
+      "followerUuid": "undefined",
+      "followeeUuid": "undefined"
+    },
+    {
+      "_id": "000003",
+      "followerUuid": "undefined",
+      "followeeUuid": "undefined"
+    },
+    {
+      "_id": "000004",
+      "followerUuid": "undefined",
+      "followeeUuid": "undefined"
+    },
+    {
+      "_id": "000005",
+      "followerUuid": "undefined",
+      "followeeUuid": "undefined"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "options": {
+    "ver": "1.0.0",
+    "inspectConflicts": false,
+    "semicolons": true,
+    "freeze": [],
+    "ts": false
+  },
+  "app": {
+    "environmentsAllowingSeedData": "test",
+    "seedData": true,
+    "name": "hooks-graphql-example",
+    "description": "Project hooks-graphql-example",
+    "src": "src",
+    "packager": "npm@>= 3.0.0",
+    "providers": [
+      "rest",
+      "socketio"
+    ]
+  },
+  "services": {
+    "users": {
+      "name": "users",
+      "nameSingular": "user",
+      "subFolder": "",
+      "fileName": "users",
+      "adapter": "nedb",
+      "path": "/users",
+      "isAuthEntity": true,
+      "requiresAuth": true,
+      "graphql": true
+    },
+    "posts": {
+      "name": "posts",
+      "nameSingular": "post",
+      "subFolder": "",
+      "fileName": "posts",
+      "adapter": "nedb",
+      "path": "/posts",
+      "isAuthEntity": false,
+      "requiresAuth": true,
+      "graphql": true
+    },
+    "comments": {
+      "name": "comments",
+      "nameSingular": "comment",
+      "subFolder": "",
+      "fileName": "comments",
+      "adapter": "nedb",
+      "path": "/comments",
+      "isAuthEntity": false,
+      "requiresAuth": true,
+      "graphql": true
+    },
+    "likes": {
+      "name": "likes",
+      "nameSingular": "like",
+      "subFolder": "",
+      "fileName": "likes",
+      "adapter": "nedb",
+      "path": "/likes",
+      "isAuthEntity": false,
+      "requiresAuth": true,
+      "graphql": true
+    },
+    "relationships": {
+      "name": "relationships",
+      "nameSingular": "relationship",
+      "subFolder": "",
+      "fileName": "relationships",
+      "adapter": "nedb",
+      "path": "/relationships",
+      "isAuthEntity": false,
+      "requiresAuth": true,
+      "graphql": true
+    }
+  },
+  "hooks": {
+    "fgraphql": {
+      "fileName": "fgraphql",
+      "camelName": "fgraphql",
+      "ifMulti": "y",
+      "multiServices": [
+        "posts",
+        "users"
+      ],
+      "singleService": ""
+    }
+  },
+  "authentication": {
+    "strategies": [
+      "local"
+    ],
+    "entity": "users"
+  },
+  "connections": {
+    "nedb": {
+      "database": "nedb",
+      "adapter": "nedb",
+      "connectionString": "nedb://../data"
+    }
+  },
+  "graphql": {
+    "path": "/graphql",
+    "strategy": "services",
+    "sqlInterface": null,
+    "requiresAuth": true,
+    "name": "graphql"
+  }
+}
