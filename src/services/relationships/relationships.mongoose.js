@@ -10,8 +10,8 @@ const mongoose = require('mongoose');
 let moduleExports = merge({},
   // !<DEFAULT> code: model
   {
-    followerUuid: mongoose.Schema.Types.ObjectId,
-    followeeUuid: mongoose.Schema.Types.ObjectId
+    followerId: mongoose.Schema.Types.ObjectId,
+    followeeId: mongoose.Schema.Types.ObjectId
   },
   // !end
   // !code: moduleExports // !end

@@ -16,10 +16,10 @@ let moduleExports = merge({},
       autoIncrement: true,
       primaryKey: true
     },
-    followerUuid: {
+    followerId: {
       type: DataTypes.INTEGER
     },
-    followeeUuid: {
+    followeeId: {
       type: DataTypes.INTEGER
     }
   },

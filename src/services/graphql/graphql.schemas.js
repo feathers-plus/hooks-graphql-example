@@ -18,8 +18,8 @@ type Comment {
 type Like {
   id: ID
   _id: ID
-  authorUuid: ID
-  commentUuid: ID
+  authorId: ID
+  commentId: ID
   author: User!
   comment: Comment!
 }
@@ -37,8 +37,8 @@ type Post {
 type Relationship {
   id: ID
   _id: ID
-  followerUuid: ID
-  followeeUuid: ID
+  followerId: ID
+  followeeId: ID
   follower: User!
   followee: User!
 }

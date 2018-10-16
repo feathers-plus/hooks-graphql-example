@@ -25,8 +25,8 @@ let schema = {
     // !code: schema_properties
     id: { type: 'ID' },
     _id: { type: 'ID' },
-    authorId: { type: 'ID', fake: { fk: 'users' } },
-    postId: { type: 'ID', fake: { fk: 'posts' } },
+    authorId: { type: 'ID', faker: { fk: 'users' } },
+    postId: { type: 'ID', faker: { fk: 'posts' } },
     body: { faker: 'lorem.sentence' },
     archived: { faker: 'random.boolean' }
     // !end

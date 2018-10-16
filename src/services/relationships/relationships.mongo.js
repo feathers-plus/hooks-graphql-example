@@ -14,15 +14,15 @@ let moduleExports = merge({},
       _id: {
         bsonType: "objectId"
       },
-      followerUuid: {
+      followerId: {
         faker: {
-          kf: "users"
+          fk: "users"
         },
         bsonType: "objectId"
       },
-      followeeUuid: {
+      followeeId: {
         faker: {
-          kf: "users"
+          fk: "users"
         },
         bsonType: "objectId"
       }

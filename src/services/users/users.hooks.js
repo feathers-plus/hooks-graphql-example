@@ -6,7 +6,9 @@ const { authenticate } = require('@feathersjs/authentication').hooks;
 const { hashPassword, protect } = require('@feathersjs/authentication-local').hooks;
 // eslint-disable-next-line no-unused-vars
 const fgraphql = require('../../hooks/fgraphql');
-// !code: imports // !end
+// !code: imports
+const schemaDefinitionLanguage = require('../../services/graphql/graphql.schemas');
+// !end
 
 // !<DEFAULT> code: used
 // eslint-disable-next-line no-unused-vars
@@ -42,32 +44,46 @@ let moduleExports = {
     //   all   : protect('password') /* Must always be the last hook */
     // !code: after
     all: [ protect('password') /* Must always be the last hook */ ],
-    find: fgraphql({ query: {
-      User: {
-        fullName: {},
-        /*
-        posts: {
-          author: {
-            fullName: {},
-            posts: {},
+    find: fgraphql({
+      schema: schemaDefinitionLanguage,
+      query: {
+        User: {
+          // will incl all fields from rec as no field names were specified
+          fullName: '',
+          posts: {
+            // props allowed in _args are { key: any, query: { ... }, params: { ... }
+            _args: { query: { draft: false } },
+            // will incl all fields from rec as no field names were specified
+            author: {
+              // includes only firstName from rec as at least 1 field name was specified
+              firstName: '',
+              fullName: '',
+              posts: {
+                // includes only draft from rec as at least 1 field name was specified
+                draft: '',
+              },
+            },
           },
-        },
-        */
-        comments: {},
-        /*
-        followed_by: {
-          follower: {}
-        },
-        following: {
-          folowee: {},
-        },
-        likes: {
-          author: {},
-          comment: {},
-        },
-        */
+          // will incl all fields from rec as no field names were specified
+          comments: '',
+          followed_by: {
+            follower: ''
+          },
+          following: {
+            followee: '',
+          },
+          likes: {
+            author: {
+              firstName: '',
+              lastName: '',
+            },
+            comment: {
+              body: ''
+            },
+          },
+        }
       }
-    } }),
+    }),
     get: [],
     create: [],
     update: [],

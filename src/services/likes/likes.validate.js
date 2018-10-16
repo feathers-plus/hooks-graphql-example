@@ -26,15 +26,15 @@ let base = merge({},
       _id: {
         type: ID
       },
-      authorUuid: {
+      authorId: {
         type: ID,
-        fake: {
+        faker: {
           fk: "users"
         }
       },
-      commentUuid: {
+      commentId: {
         type: ID,
-        fake: {
+        faker: {
           fk: "comments"
         }
       }

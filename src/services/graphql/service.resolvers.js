@@ -81,10 +81,10 @@ let moduleExports = function serviceResolvers(app, options) {
           });
           return users.find(feathersParams)
             .then(recs => {
-              console.log('..parent', parent);
-              console.log('..feathersParams', feathersParams);
-              console.log('..Post.author recs=', recs);
-              return recs
+              console.log('..POST AUTHOR parent', parent);
+              console.log('..POST AUTHOR feathersParams', feathersParams);
+              console.log('..POST AUTHOR Post.author recs=', recs);
+              return recs;
             })
             .then(extractFirstItem);
         },
@@ -148,19 +148,12 @@ let moduleExports = function serviceResolvers(app, options) {
 
       // comments: [Comment!]
       comments:
-        // !<> code: resolver-User-comments
+        // !<DEFAULT> code: resolver-User-comments
         (parent, args, content, ast) => {
           const feathersParams = convertArgs(args, content, ast, {
             query: { authorId: parent._id, $sort: undefined }, paginate: false
           });
-          return comments.find(feathersParams)
-            .then(recs => {
-              console.log('..parent', parent);
-              console.log('..feathersParams', feathersParams);
-              console.log('..User.comments recs=', recs);
-              return recs
-            })
-            .then(extractAllItems);
+          return comments.find(feathersParams).then(extractAllItems);
         },
         // !end
 

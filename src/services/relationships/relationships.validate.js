@@ -26,16 +26,16 @@ let base = merge({},
       _id: {
         type: ID
       },
-      followerUuid: {
+      followerId: {
         type: ID,
         faker: {
-          kf: "users"
+          fk: "users"
         }
       },
-      followeeUuid: {
+      followeeId: {
         type: ID,
         faker: {
-          kf: "users"
+          fk: "users"
         }
       }
     }

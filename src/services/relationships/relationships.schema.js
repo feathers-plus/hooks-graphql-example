@@ -25,8 +25,8 @@ let schema = {
     // !code: schema_properties
     id: { type: 'ID' },
     _id: { type: 'ID' },
-    followerUuid: { type: 'ID', faker: { kf: 'users' } },
-    followeeUuid: { type: 'ID', faker: { kf: 'users' } },
+    followerId: { type: 'ID', faker: { fk: 'users' } },
+    followeeId: { type: 'ID', faker: { fk: 'users' } },
     // !end
   },
   // !code: schema_more // !end

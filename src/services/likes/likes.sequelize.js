@@ -16,10 +16,10 @@ let moduleExports = merge({},
       autoIncrement: true,
       primaryKey: true
     },
-    authorUuid: {
+    authorId: {
       type: DataTypes.INTEGER
     },
-    commentUuid: {
+    commentId: {
       type: DataTypes.INTEGER
     }
   },

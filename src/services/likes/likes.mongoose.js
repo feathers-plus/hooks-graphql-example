@@ -10,8 +10,8 @@ const mongoose = require('mongoose');
 let moduleExports = merge({},
   // !<DEFAULT> code: model
   {
-    authorUuid: mongoose.Schema.Types.ObjectId,
-    commentUuid: mongoose.Schema.Types.ObjectId
+    authorId: mongoose.Schema.Types.ObjectId,
+    commentId: mongoose.Schema.Types.ObjectId
   },
   // !end
   // !code: moduleExports // !end

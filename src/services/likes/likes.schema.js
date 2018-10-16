@@ -25,8 +25,8 @@ let schema = {
     // !code: schema_properties
     id: { type: 'ID' },
     _id: { type: 'ID' },
-    authorUuid: { type: 'ID', fake: { fk: 'users' } },
-    commentUuid: { type: 'ID', fake: { fk: 'comments' }},
+    authorId: { type: 'ID', faker: { fk: 'users' } },
+    commentId: { type: 'ID', faker: { fk: 'comments' }},
     // !end
   },
   // !code: schema_more // !end

@@ -25,17 +25,9 @@ server.on('listening', async () => {
   // !code: listening // !end
   await seedData(app);
   // !code: listening1
-  const recs = await app.service('users').find({ query: { $limit: 1 }});
-  inspector('startup recs', recs);
+  await app.service('users').find({ query: { $limit: 1 }});
   // !end
 });
 
-// !code: funcs
-const { inspect } = require('util');
-
-function inspector(desc, obj) {
-  console.log(desc);
-  console.log(inspect(obj, { colors: true, depth: 9 }));
-}
-// !end
+// !code: funcs // !end
 // !code: end // !end

@@ -28,13 +28,13 @@ let base = merge({},
       },
       authorId: {
         type: ID,
-        fake: {
+        faker: {
           fk: "users"
         }
       },
       postId: {
         type: ID,
-        fake: {
+        faker: {
           fk: "posts"
         }
       },

@@ -14,14 +14,14 @@ let moduleExports = merge({},
       _id: {
         bsonType: "objectId"
       },
-      authorUuid: {
-        fake: {
+      authorId: {
+        faker: {
           fk: "users"
         },
         bsonType: "objectId"
       },
-      commentUuid: {
-        fake: {
+      commentId: {
+        faker: {
           fk: "comments"
         },
         bsonType: "objectId"
