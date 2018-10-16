@@ -8,22 +8,18 @@ const runTime = require('@feathers-plus/graphql/lib/run-time');
 const { getItems, replaceItems } = require('feathers-hooks-common');
 const { parse } = require('graphql');
 const { inspect } = require('util');
-const serviceResolvers = require('../services/graphql/service.resolvers');
 
 const debug = makeDebug('fgraphql');
 
-module.exports = function (options = {}) {
+module.exports = function (options1 = {}) {
   debug('init call');
-  const { query, schema } = options;
   let resolvers;
+  let { query, schema, resolvers: makeResolvers } = options1;
 
-  if (!isObject(query)) {
-    throw new Error(`Query is typeof ${query} rather than object. (fgraphql)`);
-  }
-
-  if (Object.keys(query).length !== 1) {
-    throw new Error('Only 1 type prop allowed at query root. (fgraphql)');
-  }
+  const options = Object.assign({}, {
+    inclAllFieldsServer: true,
+    inclAllFieldsClient: true,
+  }, options1.options || {});
 
   if (typeof schema !== 'string') {
     throw new Error(`Schema is typeof ${schema} rather than string. (fgraphql)`);
@@ -37,28 +33,47 @@ module.exports = function (options = {}) {
     if (context.params.graphql) return context;
     debug(`hook called. type ${context.type} method ${context.method}`);
 
+    query = typeof query !== 'function' ? query : query(context);
+
     if (!resolvers) {
-      resolvers = serviceResolvers(context.app, runTime);
+      resolvers = makeResolvers(context.app, runTime);
       debug(`resolvers have types ${Object.keys(resolvers)}`);
+    }
+
+    if (!isObject(query)) {
+      throw new Error(`Query is typeof ${query} rather than object. (fgraphql)`);
+    }
+
+    if (Object.keys(query).length !== 1) {
+      throw new Error('Only 1 type prop allowed at query root. (fgraphql)');
     }
 
     const type = Object.keys(query)[0];
     const fields = query[type];
-    const records = getItems(context);
+    const recs = getItems(context);
+    options.inclAllFields = context.provider ?
+      options.inclAllFieldsClient : options.inclAllFieldsServer;
+    debug(`inclAllField ${options.inclAllFields}`);
 
-    await joinRecords(feathersSdl, records, resolvers, type, fields);
-    inspector('\n\nfgraphql. records', records);
+    const store = {
+      feathersSdl,
+      resolvers,
+      options,
+    };
 
-    replaceItems(context, records);
+    await joinRecords(recs, type, fields, store);
+    inspector('\n\nfgraphql. records', recs);
+
+    replaceItems(context, recs);
     return context;
   };
 };
 
-async function joinRecords(feathersSdl, recs, resolvers, type, fields, depth = 0) {
+async function joinRecords(recs, type, fields, store, depth = 0) {
   recs = Array.isArray(recs) ? recs : [recs];
-  debug(`.....joinRecords depth ${depth} #recs ${recs.length} type ${type}`);
+  debug(`joinRecords depth ${depth} #recs ${recs.length} type ${type}`);
 
-  if (!isObject(resolvers[type])) {
+  if (!isObject(store.resolvers[type])) {
     throw new Error(`Resolvers for Type ${type} are typeof ${typeof type} not object. (fgraphql)`);
   }
 
@@ -80,42 +95,43 @@ async function joinRecords(feathersSdl, recs, resolvers, type, fields, depth = 0
     for (let i = 0, ilen = fieldNames.length; i < ilen; i++) {
       const fieldName = fieldNames[i];
       debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName}`);
-      if (fieldName === '_args') return;
 
-      includes.push(fieldName);
+      if (fieldName !== '_args') {
+        includes.push(fieldName);
 
-      if (resolvers[type][fieldName]) {
-        debug('has resolver');
-        await resolverExists();
-      } else {
-        debug('no resolver');
-        includesHasRecFields = true;
+        if (store.resolvers[type][fieldName]) {
+          debug('has resolver');
+          await resolverExists();
+        } else {
+          debug('no resolver');
+          includesHasRecFields = true;
+        }
       }
 
       // eslint-disable-next-line no-inner-declarations
       async function resolverExists() {
-        if (typeof resolvers[type][fieldName] !== 'function') {
+        if (typeof store.resolvers[type][fieldName] !== 'function') {
           throw new Error(`Resolver for Type ${type} field ${fieldName} is typeof ${typeof type} not function. (fgraphql)`);
         }
 
         const args = fields[fieldName]._args; // undefined is OK
         if (args) debug(`resolver args ${JSON.stringify(args)}`);
 
-        rec[fieldName] = await resolvers[type][fieldName](rec, args || {}, {});
+        rec[fieldName] = await store.resolvers[type][fieldName](rec, args || {}, {});
         debug(`resolver returned ${Array.isArray(rec[fieldName]) ? `${rec[fieldName].length} recs` : 'one obj'}`);
 
-        const nextType = feathersSdl[type][fieldName].typeof;
+        const nextType = store.feathersSdl[type][fieldName].typeof;
         debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName} next type ${nextType}`);
 
-        if (resolvers[nextType] && isObject(fields[fieldName])) { // ignore String, etc.
-          await joinRecords(feathersSdl, rec[fieldName], resolvers, nextType, fields[fieldName], depth + 1);
+        if (store.resolvers[nextType] && isObject(fields[fieldName])) { // ignore String, etc.
+          await joinRecords(rec[fieldName], nextType, fields[fieldName], store, depth + 1);
         }
       }
     }
 
     // Retain only record fields selected
-    debug(`field names found ${includesHasRecFields} incl ${includes}`);
-    if (includesHasRecFields) {
+    debug(`field names found ${includesHasRecFields} incl names ${includes}`);
+    if (includesHasRecFields || !store.options.inclAllFields) {
       // recs[0] may have been created by [rec] so can't replace array elem
       const oldRec = recs[j];
       const oldRecProps = Object.keys(oldRec);

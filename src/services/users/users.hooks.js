@@ -8,6 +8,7 @@ const { hashPassword, protect } = require('@feathersjs/authentication-local').ho
 const fgraphql = require('../../hooks/fgraphql');
 // !code: imports
 const schemaDefinitionLanguage = require('../../services/graphql/graphql.schemas');
+const serviceResolvers = require('../../services/graphql/service.resolvers');
 // !end
 
 // !<DEFAULT> code: used
@@ -44,33 +45,40 @@ let moduleExports = {
     //   all   : protect('password') /* Must always be the last hook */
     // !code: after
     all: [ protect('password') /* Must always be the last hook */ ],
+
+    // firstName, lastName, draft, body are fields stored in their respective records.
+    // fullName, posts, author, comments, followed_by, follower, following, followee, likes, comment
+    // are created by calls to resolver functions.
     find: fgraphql({
       schema: schemaDefinitionLanguage,
-      query: {
+      resolvers: serviceResolvers, // could be ../../services/graphql/batchloader.resolvers
+      query: context => ({ // SDL string or func returning SDL string
         User: {
-          // will incl all fields from rec as no field names were specified
-          fullName: '',
+          fullName: {},
           posts: {
-            // props allowed in _args are { key: any, query: { ... }, params: { ... }
-            _args: { query: { draft: false } },
-            // will incl all fields from rec as no field names were specified
+            _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
             author: {
-              // includes only firstName from rec as at least 1 field name was specified
               firstName: '',
-              fullName: '',
+              fullName: '', // {} or '' doesn't matter as no props inside would-have-been {}
               posts: {
-                // includes only draft from rec as at least 1 field name was specified
                 draft: '',
               },
             },
           },
-          // will incl all fields from rec as no field names were specified
-          comments: '',
+          comments: {},
           followed_by: {
-            follower: ''
+            foo: '', // non-resolver name looks like field name. forces drop of real fields
+            follower: {
+              foo: '',
+              fullName: {},
+            }
           },
           following: {
-            followee: '',
+            foo: '',
+            followee: {
+              foo: '',
+              fullName: {},
+            },
           },
           likes: {
             author: {
@@ -82,7 +90,11 @@ let moduleExports = {
             },
           },
         }
-      }
+      }),
+      options: {
+        inclAllFieldsServer: true,
+        inclAllFieldsClient: true,
+      },
     }),
     get: [],
     create: [],

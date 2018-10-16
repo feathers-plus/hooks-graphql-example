@@ -74,19 +74,12 @@ let moduleExports = function serviceResolvers(app, options) {
 
       // author: User!
       author:
-        // !code: resolver-Post-author
+        // !<DEFAULT> code: resolver-Post-author
         (parent, args, content, ast) => {
           const feathersParams = convertArgs(args, content, ast, {
             query: { _id: parent.authorId }, paginate: false
           });
-          return users.find(feathersParams)
-            .then(recs => {
-              console.log('..POST AUTHOR parent', parent);
-              console.log('..POST AUTHOR feathersParams', feathersParams);
-              console.log('..POST AUTHOR Post.author recs=', recs);
-              return recs;
-            })
-            .then(extractFirstItem);
+          return users.find(feathersParams).then(extractFirstItem);
         },
         // !end
 
