@@ -18,34 +18,37 @@ describe('common hook discard', () => {
     const afterPage =   () => ({ type: 'after',  result: { total: 2, skip: 0, data: [{ first: 'John', last: 'Doe' }, { first: 'Jane', last: 'Doe' }] } });
 
     const decisionTable = [
-      // desc,                      context,       method,   provider,  args,            result
-      ['before::create',            beforeJohn(),  'create', null,      ['first'],       { last: 'Doe' }                        ],
-      ['after::find with paginate', afterPage(),   'find',   null,      ['last'],        [{ first: 'John' }, { first: 'Jane' }] ],
-      ['after::find no paginate',   afterBoth(),   'find',   null,      ['last'],        [{ first: 'John' }, { first: 'Jane' }] ],
-      ['after',                     afterJane(),   'create', null,      ['last'],        { first: 'Jane'}                       ],
-      ['call internally on server', afterJane(),   'create', undefined, ['last'],        { first: 'Jane'}                       ],
-      ['not throw field missing',   beforeJohn(),  'create', 'rest',    ['first', 'xx'], { last: 'Doe' }                        ],
-      ['not throw field undefined', beforeUndef(), 'create', 'rest',    ['first'],       { first: undefined, last: 'Doe' }      ], // ???
-      ['not throw field null',      beforeNull(),  'create', 'rest',    ['first'],       { last: 'Doe' }                        ],
+      // desc,        schema,    resolvers,  recordType, query,     options,      context,      client, result
+      ['schema str',  s('str'),  r('full'),  'User',     q('str'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['schema fcn',  s('fcn'),  r('full'),  'User',     q('str'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['schema obj',  s('obj'),  r('full'),  'User',     q('str'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['query str',   s('str'),  r('full'),  'User',     q('str'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['query str+',  s('str'),  r('full'),  'User',     q('str+'), o('both+'),   afterJane(),  false,  a('janeFull')  ],
+      ['query fcn',   s('str'),  r('full'),  'User',     q('fcn'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['query fcn+',  s('str'),  r('full'),  'User',     q('fcn+'), o('both+'),   afterJane(),  false,  a('janeFull')  ],
+      ['opt server-', s('str'),  r('full'),  'User',     q('str'),  o('server-'), afterJane(),  false,  a('janeFull-') ],
+      ['opt client-', s('str'),  r('full'),  'User',     q('str'),  o('client-'), afterJane(),  true,   a('janeFull-') ],
     ];
     /* eslint-enable */
 
-    //decisionTable.forEach(([desc, context, method, provider, args, result]) => {
-    it('test', async () => {
-      const recs = await fgraphql({
-        schema: s('str'),
-        resolvers: r('name'),
-        recordType: 'User',
-        query: q(1),
-        options: o('both'),
-      })(afterJane());
+    decisionTable.forEach(([desc, schema, resolvers, recordType, query, options, context, client, result]) => {
+      it(desc, async () => {
+        context.params = context.params || {};
+        if (client) {
+          context.params.provider = 'socketio';
+        }
 
-      console.log(recs);
+        const newContext = await fgraphql({
+          schema, resolvers, recordType, query, options
+        })(context);
+
+        assert.deepEqual(newContext.data || newContext.result, result, 'unexpected result');
+      });
     });
-    //});
   });
 });
 
+// schemas
 function s(typ) {
   const sdl = `
 type User {
@@ -60,9 +63,18 @@ type User {
     return sdl;
   case 'fcn':
     return () => sdl;
+  case 'obj':
+    return {
+      User : {
+        firstName: { typeof: 'String' },
+        lastName: { typeof: 'String' },
+        fullName: { nonNullTypeField: true, typeof: 'String' },
+      },
+    };
   }
 }
 
+// resolvers
 function r(typ) {
   return function resolvers (app, options) { // eslint-disable-line no-unused-vars
     const {convertArgsToFeathers, extractAllItems, extractFirstItem} = options;  // eslint-disable-line no-unused-vars
@@ -70,7 +82,7 @@ function r(typ) {
     //  let comments = app.service('/comments');
 
     switch (typ) {
-    case 'name':
+    case 'full':
       return {
         User: {
           // fullName: String!
@@ -82,63 +94,59 @@ function r(typ) {
   };
 }
 
+// query
 function q(typ) {
   switch (typ) {
-  case 1:
+  case 'str':
+    return { fullName: {} };
+  case 'str+':
+    return { User: { fullName: {} } };
+  case 'fcn':
+    return () => ({ fullName: {} });
+  case 'fcn+':
+    return () => ({ User: { fullName: {} } });
+  case 'big1':
     return {
-      User: {
-        fullName: {},
-      }
-    };
-  case 2:
-    return () => ({
-      User: {
-        fullName: {},
-      }
-    });
-  case '9':
-    return {
-      User: {
-        fullName: {},
-        posts: {
-          _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
-          author: {
-            firstName: '',
-            fullName: '', // {} or '' doesn't matter as no props inside would-have-been {}
-            posts: {
-              draft: '',
-            },
+      fullName: {},
+      posts: {
+        _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
+        author: {
+          firstName: '',
+          fullName: '', // {} or '' doesn't matter as no props inside would-have-been {}
+          posts: {
+            draft: '',
           },
         },
-        comments: {},
-        followed_by: {
-          foo: '', // non-resolver name looks like field name. forces drop of real fields
-          follower: {
-            foo: '',
-            fullName: {},
-          }
-        },
-        following: {
+      },
+      comments: {},
+      followed_by: {
+        foo: '', // non-resolver name looks like field name. forces drop of real fields
+        follower: {
           foo: '',
-          followee: {
-            foo: '',
-            fullName: {},
-          },
+          fullName: {},
+        }
+      },
+      following: {
+        foo: '',
+        followee: {
+          foo: '',
+          fullName: {},
         },
-        likes: {
-          author: {
-            firstName: '',
-            lastName: '',
-          },
-          comment: {
-            body: ''
-          },
+      },
+      likes: {
+        author: {
+          firstName: '',
+          lastName: '',
         },
-      }
+        comment: {
+          body: ''
+        },
+      },
     };
   }
 }
 
+// options
 function o(typ) {
   switch (typ) {
   case 'both':
@@ -146,16 +154,30 @@ function o(typ) {
       inclAllFieldsServer: true,
       inclAllFieldsClient: true,
     };
-  case 'server':
+  case 'both+':
     return {
       inclAllFieldsServer: true,
-      inclAllFieldsClient: false,
+      inclAllFieldsClient: true,
+      queryIsProperGraphQL: true,
     };
-  case 'client':
+  case 'server-':
     return {
       inclAllFieldsServer: false,
-      inclAllFieldsClient: true,
     };
+  case 'client-':
+    return {
+      inclAllFieldsClient: false,
+    };
+  }
+}
+
+// results
+function a(typ) {
+  switch (typ) {
+  case 'janeFull' :
+    return { first: 'Jane', last: 'Doe', fullName: 'Jane Doe' };
+  case 'janeFull-' :
+    return { fullName: 'Jane Doe' };
   }
 }
 

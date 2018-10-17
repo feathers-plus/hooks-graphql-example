@@ -58,7 +58,7 @@ module.exports = function (options1 = {}) {
       throw new Error(`recordType ${recordType} not found in resolvers. (fgraphql)`);
     }
 
-    options.inclAllFields = context.provider ?
+    options.inclAllFields = context.params.provider ?
       options.inclAllFieldsClient : options.inclAllFieldsServer;
     debug(`inclAllField ${options.inclAllFields}`);
 
@@ -67,7 +67,6 @@ module.exports = function (options1 = {}) {
       ourResolvers,
       options,
     };
-
 
     const fields = options.queryIsProperGraphQL ? query[topQueryProps[0]] : query;
     const recs = getItems(context);
@@ -156,7 +155,9 @@ async function processRecords(recs, type, fields, store, depth = 0) {
 }
 
 function convertSdlToFeathersSchemaObject(schemaDefinitionLanguage) {
-  return convertDocument(parse(schemaDefinitionLanguage));
+  const graphQLSchemaObj = parse(schemaDefinitionLanguage);
+  //inspector('graphQLSchemaObj', graphQLSchemaObj)
+  return convertDocument(graphQLSchemaObj);
 }
 
 function convertDocument(ast) {
@@ -210,7 +211,7 @@ function convertFieldDefinition(field, errDesc) {
 
   const fieldName = convertName(field.name, errDesc);
   const converted = convertFieldDefinitionType(field.type, errDesc);
-  converted.inputValues = !!field.arguments;
+  converted.inputValues = field.arguments && field.arguments.length !== 0;
 
   return [fieldName, converted];
 }
@@ -254,4 +255,10 @@ function isFunction(func) {
 
 function isArray(array) {
   return Array.isArray(array);
+}
+
+const { inspect } = require('util');
+function inspector(desc,obj) {
+  console.log(desc);
+  console.log(inspect(obj, { colors: true, depth: 7 }));
 }
