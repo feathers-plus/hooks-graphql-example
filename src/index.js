@@ -4,7 +4,9 @@
 const logger = require('./logger');
 const app = require('./app');
 const seedData = require('./seed-data');
-// !code: imports // !end
+// !code: imports
+const { inspect } = require('util');
+// !end
 // !code: init // !end
 
 const port = app.get('port');
@@ -25,9 +27,15 @@ server.on('listening', async () => {
   // !code: listening // !end
   await seedData(app);
   // !code: listening1
-  await app.service('users').find({ query: { $limit: 1 }});
+  const recs = await app.service('users').find({ query: { $limit: 1 }});
+  inspector('\n\nresult', recs);
   // !end
 });
 
-// !code: funcs // !end
+// !code: funcs
+function inspector(desc, obj) {
+  console.log(desc);
+  console.log(inspect(obj, { colors: true, depth: 9 }));
+}
+// !end
 // !code: end // !end

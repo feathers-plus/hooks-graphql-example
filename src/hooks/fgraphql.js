@@ -7,73 +7,83 @@ const makeDebug = require('debug');
 const runTime = require('@feathers-plus/graphql/lib/run-time');
 const { getItems, replaceItems } = require('feathers-hooks-common');
 const { parse } = require('graphql');
-const { inspect } = require('util');
 
 const debug = makeDebug('fgraphql');
 
 module.exports = function (options1 = {}) {
   debug('init call');
-  let resolvers;
-  let { query, schema, resolvers: makeResolvers } = options1;
+  let { schema, query } = options1;
+  const { resolvers, recordType } = options1;
+  let ourResolvers;
 
   const options = Object.assign({}, {
+    skipHookWhen: context => !!(context.params || {}).graphql,
+    queryIsProperGraphQL: false,
     inclAllFieldsServer: true,
     inclAllFieldsClient: true,
   }, options1.options || {});
 
-  if (typeof schema !== 'string') {
-    throw new Error(`Schema is typeof ${schema} rather than string. (fgraphql)`);
+  schema = isFunction(schema) ? schema() : schema;
+
+  if (!isObject(schema) && !isString(schema)) {
+    throw new Error(`Resolved schema is typeof ${query} rather than string or object. (fgraphql)`);
   }
 
-  const feathersSdl = convertSdlToFeathersSchemaObject(schema);
-  debug('schema defn Language converted');
+  const feathersSdl = isObject(schema) ? schema : convertSdlToFeathersSchemaObject(schema);
+  debug('schema now in internal form');
 
   // Return the actual hook.
   return async (context) => {
-    if (context.params.graphql) return context;
-    debug(`hook called. type ${context.type} method ${context.method}`);
+    const ifSkip = options.skipHookWhen(context);
+    debug(`hook called. type ${context.type} method ${context.method} ifSkip ${ifSkip}`);
+    if (ifSkip) return context;
 
-    query = typeof query !== 'function' ? query : query(context);
-
-    if (!resolvers) {
-      resolvers = makeResolvers(context.app, runTime);
-      debug(`resolvers have types ${Object.keys(resolvers)}`);
-    }
+    query = isFunction(query) ? query(context) : query;
 
     if (!isObject(query)) {
       throw new Error(`Query is typeof ${query} rather than object. (fgraphql)`);
     }
 
-    if (Object.keys(query).length !== 1) {
-      throw new Error('Only 1 type prop allowed at query root. (fgraphql)');
+    const topQueryProps = Object.keys(query);
+    if (options.queryIsProperGraphQL && topQueryProps.length !== 1) {
+      throw new Error('Only 1 type prop allowed at query root when proper GraphQL. (fgraphql)');
     }
 
-    const type = Object.keys(query)[0];
-    const fields = query[type];
-    const recs = getItems(context);
+    if (!ourResolvers) {
+      ourResolvers = resolvers(context.app, runTime);
+      debug(`ourResolvers have types ${Object.keys(ourResolvers)}`);
+    }
+
+    if (!ourResolvers[recordType]) {
+      throw new Error(`recordType ${recordType} not found in resolvers. (fgraphql)`);
+    }
+
     options.inclAllFields = context.provider ?
       options.inclAllFieldsClient : options.inclAllFieldsServer;
     debug(`inclAllField ${options.inclAllFields}`);
 
     const store = {
       feathersSdl,
-      resolvers,
+      ourResolvers,
       options,
     };
 
-    await joinRecords(recs, type, fields, store);
-    inspector('\n\nfgraphql. records', recs);
+
+    const fields = options.queryIsProperGraphQL ? query[topQueryProps[0]] : query;
+    const recs = getItems(context);
+
+    await processRecords(recs, recordType, fields, store);
 
     replaceItems(context, recs);
     return context;
   };
 };
 
-async function joinRecords(recs, type, fields, store, depth = 0) {
-  recs = Array.isArray(recs) ? recs : [recs];
-  debug(`joinRecords depth ${depth} #recs ${recs.length} type ${type}`);
+async function processRecords(recs, type, fields, store, depth = 0) {
+  recs = isArray(recs) ? recs : [recs];
+  debug(`processRecords depth ${depth} #recs ${recs.length} type ${type}`);
 
-  if (!isObject(store.resolvers[type])) {
+  if (!isObject(store.ourResolvers[type])) {
     throw new Error(`Resolvers for Type ${type} are typeof ${typeof type} not object. (fgraphql)`);
   }
 
@@ -91,7 +101,7 @@ async function joinRecords(recs, type, fields, store, depth = 0) {
     const includes = [];
     let includesHasRecFields = false;
 
-    // for every joined field
+    // for every field, resolver
     for (let i = 0, ilen = fieldNames.length; i < ilen; i++) {
       const fieldName = fieldNames[i];
       debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName}`);
@@ -99,7 +109,7 @@ async function joinRecords(recs, type, fields, store, depth = 0) {
       if (fieldName !== '_args') {
         includes.push(fieldName);
 
-        if (store.resolvers[type][fieldName]) {
+        if (store.ourResolvers[type][fieldName]) {
           debug('has resolver');
           await resolverExists();
         } else {
@@ -110,21 +120,21 @@ async function joinRecords(recs, type, fields, store, depth = 0) {
 
       // eslint-disable-next-line no-inner-declarations
       async function resolverExists() {
-        if (typeof store.resolvers[type][fieldName] !== 'function') {
+        if (!isFunction(store.ourResolvers[type][fieldName])) {
           throw new Error(`Resolver for Type ${type} field ${fieldName} is typeof ${typeof type} not function. (fgraphql)`);
         }
 
         const args = fields[fieldName]._args; // undefined is OK
         if (args) debug(`resolver args ${JSON.stringify(args)}`);
 
-        rec[fieldName] = await store.resolvers[type][fieldName](rec, args || {}, {});
-        debug(`resolver returned ${Array.isArray(rec[fieldName]) ? `${rec[fieldName].length} recs` : 'one obj'}`);
+        rec[fieldName] = await store.ourResolvers[type][fieldName](rec, args || {}, {});
+        debug(`resolver returned ${isArray(rec[fieldName]) ? `${rec[fieldName].length} recs` : 'one obj'}`);
 
         const nextType = store.feathersSdl[type][fieldName].typeof;
         debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName} next type ${nextType}`);
 
-        if (store.resolvers[nextType] && isObject(fields[fieldName])) { // ignore String, etc.
-          await joinRecords(rec[fieldName], nextType, fields[fieldName], store, depth + 1);
+        if (store.ourResolvers[nextType] && isObject(fields[fieldName])) { // ignore String, etc.
+          await processRecords(rec[fieldName], nextType, fields[fieldName], store, depth + 1);
         }
       }
     }
@@ -152,7 +162,7 @@ function convertSdlToFeathersSchemaObject(schemaDefinitionLanguage) {
 function convertDocument(ast) {
   const result = {};
 
-  if (ast.kind !== 'Document' || !Array.isArray(ast.definitions)) {
+  if (ast.kind !== 'Document' || !isArray(ast.definitions)) {
     throw new Error('Not a valid GraphQL Document.');
   }
 
@@ -170,7 +180,7 @@ function convertDocument(ast) {
 function convertObjectTypeDefinition(definition, definitionIndex) {
   const converted = {};
 
-  if (definition.kind !== 'ObjectTypeDefinition' || !Array.isArray(definition.fields)) {
+  if (definition.kind !== 'ObjectTypeDefinition' || !isArray(definition.fields)) {
     throw new Error(`Type# ${definitionIndex} is not a valid ObjectTypeDefinition`);
   }
 
@@ -186,7 +196,7 @@ function convertObjectTypeDefinition(definition, definitionIndex) {
 }
 
 function convertName(nameObj, errDesc) {
-  if (!isObject(nameObj) || typeof nameObj.value !== 'string') {
+  if (!isObject(nameObj) || !isString(nameObj.value)) {
     throw new Error(`${errDesc} does not have a valid name prop.`);
   }
 
@@ -234,7 +244,14 @@ function isObject(obj) {
   return typeof obj === 'object' && obj !== null;
 }
 
-function inspector(desc, obj) {
-  console.log(desc);
-  console.log(inspect(obj, { colors: true, depth: 9 }));
+function isString(str) {
+  return typeof str === 'string';
+}
+
+function isFunction(func) {
+  return typeof func === 'function';
+}
+
+function isArray(array) {
+  return Array.isArray(array);
 }

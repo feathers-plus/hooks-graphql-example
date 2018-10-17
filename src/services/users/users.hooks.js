@@ -50,50 +50,52 @@ let moduleExports = {
     // fullName, posts, author, comments, followed_by, follower, following, followee, likes, comment
     // are created by calls to resolver functions.
     find: fgraphql({
-      schema: schemaDefinitionLanguage,
-      resolvers: serviceResolvers, // could be ../../services/graphql/batchloader.resolvers
-      query: context => ({ // SDL string or func returning SDL string
-        User: {
-          fullName: {},
-          posts: {
-            _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
-            author: {
-              firstName: '',
-              fullName: '', // {} or '' doesn't matter as no props inside would-have-been {}
-              posts: {
-                draft: '',
-              },
+      schema: schemaDefinitionLanguage, //
+      resolvers: serviceResolvers, // could also be ../../services/graphql/batchloader.resolvers
+      recordType: 'User', // the Type of the records returned by the service call
+      query: () => ({ // query or func returning query
+        fullName: {},
+        posts: {
+          _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
+          author: {
+            firstName: '',
+            fullName: '', // {} or '' doesn't matter as no props inside would-have-been {}
+            posts: {
+              draft: '',
             },
           },
-          comments: {},
-          followed_by: {
-            foo: '', // non-resolver name looks like field name. forces drop of real fields
-            follower: {
-              foo: '',
-              fullName: {},
-            }
-          },
-          following: {
+        },
+        comments: {},
+        followed_by: {
+          foo: '', // non-resolver name looks like field name. forces drop of real fields
+          follower: {
             foo: '',
-            followee: {
-              foo: '',
-              fullName: {},
-            },
+            fullName: {},
+          }
+        },
+        following: {
+          foo: '',
+          followee: {
+            foo: '',
+            fullName: {},
           },
-          likes: {
-            author: {
-              firstName: '',
-              lastName: '',
-            },
-            comment: {
-              body: ''
-            },
+        },
+        likes: {
+          author: {
+            firstName: '',
+            lastName: '',
           },
-        }
+          comment: {
+            body: ''
+          },
+        },
       }),
       options: {
-        inclAllFieldsServer: true,
-        inclAllFieldsClient: true,
+        // these values are the defaults
+        skipHookWhen: context => !!(context.params || {}).graphql, // set by generated resolvers
+        queryIsProperGraphQL: false, // not ( findUser: { fullName: {} }} but { fullName:{} }
+        inclAllFieldsServer: true, // if no field explicitly incl, incl them all. called on server
+        inclAllFieldsClient: true, // called on client
       },
     }),
     get: [],
