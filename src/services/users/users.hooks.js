@@ -7,6 +7,7 @@ const { hashPassword, protect } = require('@feathersjs/authentication-local').ho
 // eslint-disable-next-line no-unused-vars
 const fgraphql = require('../../hooks/fgraphql');
 // !code: imports
+const { parse } = require('graphql');
 const schemaDefinitionLanguage = require('../../services/graphql/graphql.schemas');
 const serviceResolvers = require('../../services/graphql/service.resolvers');
 // !end
@@ -50,6 +51,7 @@ let moduleExports = {
     // fullName, posts, author, comments, followed_by, follower, following, followee, likes, comment
     // are created by calls to resolver functions.
     find: fgraphql({
+      parse,
       schema: schemaDefinitionLanguage, //
       resolvers: serviceResolvers, // could also be ../../services/graphql/batchloader.resolvers
       recordType: 'User', // the Type of the records returned by the service call
