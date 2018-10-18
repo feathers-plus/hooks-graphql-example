@@ -12,7 +12,7 @@ let graphqlParse;
 
 module.exports = function (options1 = {}) {
   debug('init call');
-  let { schema, query } = options1;
+  let { schema, query, resolverContent = context => context} = options1;
   const { parse, resolvers, recordType } = options1;
   let ourResolvers;
 
@@ -38,6 +38,12 @@ module.exports = function (options1 = {}) {
     const ifSkip = options.skipHookWhen(context);
     debug(`hook called. type ${context.type} method ${context.method} ifSkip ${ifSkip}`);
     if (ifSkip) return context;
+
+    resolverContent = isFunction(resolverContent) ? resolverContent(context) : resolverContent;
+
+    if (!isObject(resolverContent)) {
+      throwError(`Resolver context is typeof ${resolverContent} rather than object. (fgraphql)`, 105);
+    }
 
     query = isFunction(query) ? query(context) : query;
 
@@ -67,6 +73,7 @@ module.exports = function (options1 = {}) {
       feathersSdl,
       ourResolvers,
       options,
+      resolverContent,
     };
 
     const fields = options.queryIsProperGraphQL ? query[topQueryProps[0]] : query;
@@ -106,16 +113,15 @@ async function processRecords(recs, type, fields, store, depth = 0) {
       const fieldName = fieldNames[i];
       debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName}`);
 
-      if (fieldName !== '_args' && fieldName !== '_none') {
+      // One way to include/exclude rec fields is to give their names a falsey value.
+      // _args and _none are not rec field names.
+      if (fields[fieldName] && fieldName !== '_args' && fieldName !== '_none') {
         includes.push(fieldName);
 
         if (store.ourResolvers[type][fieldName]) {
           debug('has resolver');
           await resolverExists();
         } else {
-          console.log(type);
-          console.log(fieldName);
-          console.log(store.ourResolvers);
           debug('no resolver');
           includesHasRecFields = true;
         }
@@ -132,7 +138,7 @@ async function processRecords(recs, type, fields, store, depth = 0) {
         args = isObject(fields[fieldName]) ? fields[fieldName]._args : undefined;
         if (args) debug(`resolver args ${JSON.stringify(args)}`);
 
-        rec[fieldName] = await store.ourResolvers[type][fieldName](rec, args || {}, {});
+        rec[fieldName] = await store.ourResolvers[type][fieldName](rec, args || {}, store.resolverContent);
         debug(`resolver returned ${isArray(rec[fieldName]) ? `${rec[fieldName].length} recs` : 'one obj'}`);
 
         const nextType = store.feathersSdl[type][fieldName].typeof;

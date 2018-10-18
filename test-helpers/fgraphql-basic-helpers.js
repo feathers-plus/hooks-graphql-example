@@ -14,7 +14,7 @@ type User {
   likes: [Like!]
 }`;
 
-module.exports = {s, r, q, o, a, SDL };
+module.exports = {s, r, q, o, c, a, SDL };
 
 // schemas
 function s(typ) {
@@ -83,6 +83,8 @@ type Comment {
     return S2;
   case 'S3':
     return S3;
+  default:
+    throw new Error(`Invalid typ ${typ} for "s" function.`);
   }
 }
 
@@ -125,7 +127,7 @@ function r(typ) {
             (parent, args, content, ast) => { // eslint-disable-line no-unused-vars
               return [
                 { _id: '1001', body: 'foo body' },
-                { _id: (args.params || {})._id || '1002', body: 'bar body' },
+                { _id: (args.params || content.foo || {})._id || '1002', body: 'bar body' },
               ];
             },
           // comments: [Comment]
@@ -175,6 +177,8 @@ function r(typ) {
             },
         }
       };
+    default:
+      throw new Error(`Invalid typ ${typ} for "r" function.`);
     }
   };
 }
@@ -184,21 +188,21 @@ function q(typ) {
   switch (typ) {
   /* eslint-disable */
   case 'obj':
-    return                    { fullName: {}        }   ;
+    return                    { fullName: {}                                    }   ;
   case 'none':
-    return                    { fullName: {},       _none: {} }   ;
-  case 'any1':
-    return                    { fullName: null      }   ;
-  case 'any2':
-    return                    { fullName: undefined }   ;
-  case 'any3':
-    return                    { fullName: '' }   ;
+    return                    { fullName: {},                        _none: {}  }   ;
+  case 'value1':
+    return                    { fullName: 1,  first: 1,    last: 1              }   ;
+  case 'value0':
+    return                    { fullName: 0,  first: 1,    last: 0              }   ;
+  case 'falsey':
+    return                    { fullName: '', first: null, last: 1              }   ;
   case 'obj+':
-    return        { findUser: { fullName: {} } } ;
+    return        { findUser: { fullName: {}                                    } } ;
   case 'fcn':
-    return () => (            { fullName: {} }  );
+    return () => (            { fullName: {}                                    }  );
   case 'fcn+':
-    return () => ({ findUser: { fullName: {} } });
+    return () => ({ findUser: { fullName: {}                                    } });
   case 'err1':
     return undefined;
   case 'err2':
@@ -218,6 +222,10 @@ function q(typ) {
       posts: {
         _args: { params: { _id: '9999' } }
       }
+    };
+  case 'S2cont':
+    return {
+      posts: {}
     };
 
   case 'S3all':
@@ -268,6 +276,8 @@ function q(typ) {
         },
       },
     };
+    default:
+      throw new Error(`Invalid typ ${typ} for "q" function.`);
     /* eslint-enable */
   }
 }
@@ -288,6 +298,18 @@ function o(typ) {
     return { inclAllFieldsClient: false };
   case 'loop':
     return { skipHookWhen: () => false  };
+  default:
+    throw new Error(`Invalid typ ${typ} for "o" function.`);
+  }
+}
+
+// resolverContent
+function c(typ) {
+  switch (typ) {
+  case 'ok':
+    return { foo: 'bar'};
+  default:
+    throw new Error(`Invalid typ ${typ} for "c" function.`);
   }
 }
 
@@ -301,6 +323,10 @@ function a(typ) {
     return {                             fullName: 'Jane Doe' };
   case 'janeMess' :
     return { first: 'foo',  last: 'Doe', fullName: 'Jane Doe' };
+  case 'jane0' :
+    return { first: 'Jane'                                    };
+  case 'janeFalsey' :
+    return {                last: 'Doe'                       };
 
   case 'S2post' :
     return {
@@ -329,6 +355,15 @@ function a(typ) {
         { _id: '2002', comment: 'bar comment' },
       ]
     };
+  case 'S2cont' :
+    return {
+      first: 'Jane',
+      last: 'Doe',
+      posts: [
+        { _id: '1001', body: 'foo body' },
+        { _id: '9999', body: 'bar body' },
+      ]
+    };
   case 'S2both' :
     return {
       first: 'Jane',
@@ -343,33 +378,36 @@ function a(typ) {
       ]
     };
 
-    case 'S3all' :
-      return {
-        first: 'Jane',
-        last: 'Doe',
-        posts: [
-          { _id: '1001',
-            body: 'foo body',
-            author: { _id: '3001', first: 'Jane', last: 'Doe' }
-          },
-          {
-            _id: '1002',
-            body: 'bar body',
-            author: { _id: '3001', first: 'Jane', last: 'Doe' }
-          }
-        ],
-        comments: [
-          { _id: '2001',
-            comment: 'foo comment',
-            author: { _id: '4001', first: 'Jane', last: 'Doe' }
-          },
-          {
-            _id: '2002',
-            comment: 'bar comment',
-            author: { _id: '4001', first: 'Jane', last: 'Doe' }
-          }
-        ]
-      }
+  case 'S3all' :
+    return {
+      first: 'Jane',
+      last: 'Doe',
+      posts: [
+        { _id: '1001',
+          body: 'foo body',
+          author: { _id: '3001', first: 'Jane', last: 'Doe' }
+        },
+        {
+          _id: '1002',
+          body: 'bar body',
+          author: { _id: '3001', first: 'Jane', last: 'Doe' }
+        }
+      ],
+      comments: [
+        { _id: '2001',
+          comment: 'foo comment',
+          author: { _id: '4001', first: 'Jane', last: 'Doe' }
+        },
+        {
+          _id: '2002',
+          comment: 'bar comment',
+          author: { _id: '4001', first: 'Jane', last: 'Doe' }
+        }
+      ]
+    }
+
+  default:
+    throw new Error(`Invalid typ ${typ} for "a" function.`);
   }
   /* eslint-enable */
 }
