@@ -3,6 +3,7 @@
 const { assert } = require('chai');
 const { parse } = require('graphql');
 const fgraphql = require('../../src/hooks/fgraphql');
+const {s, r, q, o, a, SDL } = require('../../test-helpers/fgraphql-basic-helpers.js'); // eslint-disable-line no-unused-vars
 
 // ********************************* error when neither resolver nor record field exists for name
 // decide if allow foo name or _ignore_other_fields
@@ -42,13 +43,23 @@ describe('fgraphql-basic.test.js', () => {
       // desc,        schema,    resolvers,   recordType, query,      options,      context,      client, result
       ['ok findUser', s('str'),  r('full'),   'User',     q('obj+'),  o('graph'),   afterJane(),  false,  a('janeFull')  ],
       ['no findUser', s('str'),  r('full'),   'User',     q('obj'),   o('both'),    afterJane(),  false,  a('janeFull')  ],
-      ['mess parent', s('str'),  r('parent'), 'User',     q('obj'),   o('both'),    afterJane(),  false,  a('janeMess')  ],
-      ['opt {} 1',    s('str'),  r('full'),   'User',     q('any1'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
-      ['opt {} 2',    s('str'),  r('full'),   'User',     q('any2'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
-      ['opt {} 3',    s('str'),  r('full'),   'User',     q('any3'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
-      // Test recursion
+      ['chge parent', s('str'),  r('parent'), 'User',     q('obj'),   o('both'),    afterJane(),  false,  a('janeMess')  ],
+      ['type null',   s('str'),  r('full'),   'User',     q('any1'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['type undef',  s('str'),  r('full'),   'User',     q('any2'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['type ""',     s('str'),  r('full'),   'User',     q('any3'),  o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['incl flds 1', s('str'),  r('full'),   'User',     q('obj'),   o('both'),    afterJane(),  false,  a('janeFull')  ],
+      ['incl flds s', s('str'),  r('full'),   'User',     q('obj'),   o('server-'), afterJane(),  false,  a('janeFull-') ],
+      ['incl flds c', s('str'),  r('full'),   'User',     q('obj'),   o('client-'), afterJane(),  true,   a('janeFull-') ],
+      ['_none',       s('str'),  r('full'),   'User',     q('none'),  o('both'),    afterJane(),  false,  a('janeFull-') ],
+      // Test join type at top level #2
       // desc,        schema,    resolvers,   recordType, query,      options,      context,      client, result
-      ['posts',       s('SDL2'), r('SDL2'),   'User',     q('SDL2a'), o('both'),    afterJane(),  false,  a('janeSDL2')  ],
+      ['1 post',      s('S2'),   r('S2'),     'User',     q('S2post'),o('both'),    afterJane(),  false,  a('S2post')    ],
+      ['1 comment',   s('S2'),   r('S2'),     'User',     q('S2comm'),o('both'),    afterJane(),  false,  a('S2comm')    ],
+      ['l both',      s('S2'),   r('S2'),     'User',     q('S2both'),o('both'),    afterJane(),  false,  a('S2both')    ],
+      ['1 post args', s('S2'),   r('S2'),     'User',     q('S2parm'),o('both'),    afterJane(),  false,  a('S2parm')    ],
+      // Test join type at level #3
+      // desc,        schema,    resolvers,   recordType, query,      options,      context,      client, result
+      ['2 all',       s('S3'),   r('S3'),     'User',     q('S3all'), o('both'),    afterJane(),  false,  a('S3all')     ],
     ];
     /* eslint-enable */
 
@@ -67,8 +78,8 @@ describe('fgraphql-basic.test.js', () => {
           if (!isObject(result)) {
             assert(false, `Unexpected success. Expected ${result}.`);
           } else {
-            console.log('result=', result);
-            console.log('actual=', newContext.data || newContext.result);
+            inspector('result=', result);
+            inspector('actual=', newContext.data || newContext.result);
             assert.deepEqual(newContext.data || newContext.result, result, 'unexpected result');
           }
         } catch(err) {
@@ -86,225 +97,12 @@ describe('fgraphql-basic.test.js', () => {
   });
 });
 
-// schemas
-function s(typ) {
-  const SDL1 = `
-type User {
-  _id: ID
-  firstName: String
-  lastName: String
-  fullName: String!
-}`;
-
-  const SDL2 = `
-type User {
-  _id: ID
-  firstName: String
-  lastName: String
-  posts: [Post]
-}
-type Post {
-  _id: ID
-  body: String
-}`;
-
-  switch (typ) {
-  case 'str':
-    return SDL1;
-  case 'fcn':
-    return () => SDL1;
-  case 'obj':
-    return {
-      User : {
-        firstName: { typeof: 'String' },
-        lastName: { typeof: 'String' },
-        fullName: { nonNullTypeField: true, typeof: 'String' },
-      },
-    };
-  case 'err1':
-    return () => null;
-
-  case 'SDL2':
-    return SDL2;
-  }
-}
-
-// resolvers
-function r(typ) {
-  return function resolvers (app, options) { // eslint-disable-line no-unused-vars
-    const {convertArgsToFeathers, extractAllItems, extractFirstItem} = options;  // eslint-disable-line no-unused-vars
-    const convertArgs = convertArgsToFeathers([]);  // eslint-disable-line no-unused-vars
-    //  let comments = app.service('/comments');
-
-    switch (typ) {
-    case 'full':
-      return {
-        User: {
-          // fullName: String!
-          fullName:
-            (parent, args, content, ast) => `${parent.first} ${parent.last}`, // eslint-disable-line no-unused-vars
-        }
-      };
-    case 'parent':
-      return {
-        User: {
-          // fullName: String!
-          fullName:
-            (parent, args, content, ast) => { // eslint-disable-line no-unused-vars
-              const returns = `${parent.first} ${parent.last}`;
-              parent.first = 'foo';
-              return returns;
-            },
-        }
-      };
-    case 'err1':
-      return { User: { fullName: 'foo' } };
-
-    case 'SDL2':
-      return {
-        User: {
-          // posts: [Post]
-          posts:
-            (parent, args, content, ast) => { // eslint-disable-line no-unused-vars
-              console.log('SDL2 User posts');
-              return [
-                { _id: '1001', body: 'foo' },
-                { _id: '1002', body: 'bar' },
-              ];
-            },
-        },
-        Post: {}
-      };
-    }
-  };
-}
-
-// query
-function q(typ) {
-  switch (typ) {
-  /* eslint-disable */
-  case 'obj':
-    return                    { fullName: {}        }   ;
-  case 'any1':
-    return                    { fullName: null      }   ;
-  case 'any2':
-    return                    { fullName: undefined }   ;
-  case 'any3':
-    return                    { fullName: '' }   ;
-  case 'obj+':
-    return        { findUser: { fullName: {} } } ;
-  case 'fcn':
-    return () => (            { fullName: {} }  );
-  case 'fcn+':
-    return () => ({ findUser: { fullName: {} } });
-  case 'err1':
-    return undefined;
-  case 'err2':
-    return {
-      findUser: { fullName: {} },
-      getUser:  {}
-    };
-
-  case 'SDL2a':
-    return { posts: {} }   ;
-
-  case 'big1':
-    return {
-      fullName: {},
-      posts: {
-        _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
-        author: {
-          firstName: '',
-          fullName: '', // {} or '' doesn't matter as no props inside would-have-been {}
-          posts: {
-            draft: '',
-          },
-        },
-      },
-      comments: {},
-      followed_by: {
-        foo: '', // non-resolver name looks like field name. forces drop of real fields
-        follower: {
-          foo: '',
-          fullName: {},
-        }
-      },
-      following: {
-        foo: '',
-        followee: {
-          foo: '',
-          fullName: {},
-        },
-      },
-      likes: {
-        author: {
-          firstName: '',
-          lastName: '',
-        },
-        comment: {
-          body: ''
-        },
-      },
-    };
-    /* eslint-enable */
-  }
-}
-
-// options
-function o(typ) {
-  switch (typ) {
-  case 'both':
-    return {
-      inclAllFieldsServer: true,
-      inclAllFieldsClient: true,
-    };
-  case 'graph':
-    return { queryIsProperGraphQL: true };
-  case 'server-':
-    return { inclAllFieldsServer: false };
-  case 'client-':
-    return { inclAllFieldsClient: false };
-  case 'loop':
-    return { skipHookWhen: () => false  };
-  }
-}
-
-// results
-function a(typ) {
-  switch (typ) {
-  /* eslint-disable */
-  case 'janeFull' :
-    return { first: 'Jane', last: 'Doe', fullName: 'Jane Doe' };
-  case 'janeFull-' :
-    return {                             fullName: 'Jane Doe' };
-  case 'janeMess' :
-    return { first: 'foo',  last: 'Doe', fullName: 'Jane Doe' };
-
-  case 'janeSDL2' :
-    return { first: 'Jane', last: 'Doe', posts: [
-        { _id: '1001', body: 'foo' },
-        { _id: '1002', body: 'bar' },
-      ] };
-  }
-  /* eslint-enable */
-}
-
-// eslint-disable-next-line no-unused-vars
-const SDL = `
-type User {
-  id: ID
-  _id: ID
-  email: String
-  firstName: String
-  lastName: String
-  fullName: String!
-  posts(query: JSON, params: JSON, key: JSON): [Post!]
-  comments: [Comment!]
-  followed_by: [Relationship!]
-  following: [Relationship!]
-  likes: [Like!]
-}`;
-
 function isObject(obj) {
   return typeof obj === 'object' && obj !== null;
+}
+
+const { inspect } = require('util');
+function inspector(desc, obj) {
+  console.log(desc);
+  console.log(inspect(obj, { colors: true, depth: 9 }));
 }

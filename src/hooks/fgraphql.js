@@ -16,8 +16,6 @@ module.exports = function (options1 = {}) {
   const { parse, resolvers, recordType } = options1;
   let ourResolvers;
 
-  console.log('\n==============================================');
-
   graphqlParse = parse;
   const options = Object.assign({}, {
     skipHookWhen: context => !!(context.params || {}).graphql,
@@ -108,7 +106,7 @@ async function processRecords(recs, type, fields, store, depth = 0) {
       const fieldName = fieldNames[i];
       debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName}`);
 
-      if (fieldName !== '_args') {
+      if (fieldName !== '_args' && fieldName !== '_none') {
         includes.push(fieldName);
 
         if (store.ourResolvers[type][fieldName]) {
@@ -125,7 +123,6 @@ async function processRecords(recs, type, fields, store, depth = 0) {
 
       // eslint-disable-next-line no-inner-declarations
       async function resolverExists() {
-        console.log('...IN RESOLVER_EXISTS');
         let args;
 
         if (!isFunction(store.ourResolvers[type][fieldName])) {
@@ -135,12 +132,7 @@ async function processRecords(recs, type, fields, store, depth = 0) {
         args = isObject(fields[fieldName]) ? fields[fieldName]._args : undefined;
         if (args) debug(`resolver args ${JSON.stringify(args)}`);
 
-        console.log('before await:', type, fieldName, rec, args);
-
         rec[fieldName] = await store.ourResolvers[type][fieldName](rec, args || {}, {});
-
-        console.log('after await:', rec[fieldName]);
-
         debug(`resolver returned ${isArray(rec[fieldName]) ? `${rec[fieldName].length} recs` : 'one obj'}`);
 
         const nextType = store.feathersSdl[type][fieldName].typeof;
@@ -154,7 +146,7 @@ async function processRecords(recs, type, fields, store, depth = 0) {
 
     // Retain only record fields selected
     debug(`field names found ${includesHasRecFields} incl names ${includes}`);
-    if (includesHasRecFields || !store.options.inclAllFields) {
+    if (includesHasRecFields || !store.options.inclAllFields || fieldNames.includes('_none')) {
       // recs[0] may have been created by [rec] so can't replace array elem
       const oldRec = recs[j];
       const oldRecProps = Object.keys(oldRec);
