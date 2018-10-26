@@ -1,74 +1,91 @@
 
-/* eslint no-console: 0 */
-// Use this hook to manipulate incoming or outgoing data.
-// For more information on hooks see: http://docs.feathersjs.com/api/hooks.html
-
 const makeDebug = require('debug');
-const runTime = require('@feathers-plus/graphql/lib/run-time');
 const { getItems, replaceItems } = require('feathers-hooks-common');
 
 const debug = makeDebug('fgraphql');
-let graphqlParse;
+const graphqlActions = ['Query', 'Mutation', 'Subscription'];
 
-module.exports = function (options1 = {}) {
+module.exports = function fgraphql (options1 = {}) {
   debug('init call');
+  const { parse, recordType, resolvers, runTime } = options1;
   let { schema, query, resolverContent = context => context} = options1;
-  const { parse, resolvers, recordType } = options1;
-  let ourResolvers;
 
-  graphqlParse = parse;
+  let ourResolvers; // will be initialized when hook is first called
+
   const options = Object.assign({}, {
     skipHookWhen: context => !!(context.params || {}).graphql,
-    queryIsProperGraphQL: false,
     inclAllFieldsServer: true,
     inclAllFieldsClient: true,
+    inclAllFields: null, // Will be initialized each hook call.
+    extraAuthProps: [],
   }, options1.options || {});
 
   schema = isFunction(schema) ? schema() : schema;
 
   if (!isObject(schema) && !isString(schema)) {
-    throwError(`Resolved schema is typeof ${query} rather than string or object. (fgraphql)`, 101);
+    throwError(`Resolved schema is typeof ${typeof schema} rather than string or object. (fgraphql)`, 101);
   }
 
-  const feathersSdl = isObject(schema) ? schema : convertSdlToFeathersSchemaObject(schema);
+  if (!isObject(runTime)) {
+    throwError(`option runTime is typeof ${typeof query} rather than an object. (fgraphql)`, 106);
+  }
+
+  if (!isString(recordType)) {
+    throwError(`recordType is typeof ${typeof recordType} rather than string. (fgraphql)`, 103);
+  }
+
+  if (!isArray(options.extraAuthProps)) {
+    throwError(`option extraAuthProps is typeof ${typeof resolverContent} rather than array. (fgraphql)`, 105);
+  }
+
+  const feathersSdl = isObject(schema) ? schema : convertSdlToFeathersSchemaObject(schema, parse);
   debug('schema now in internal form');
 
-  // Return the actual hook.
+  // Return the hook.
   return async (context) => {
-    const ifSkip = options.skipHookWhen(context);
-    debug(`hook called. type ${context.type} method ${context.method} ifSkip ${ifSkip}`);
-    if (ifSkip) return context;
+    const contextParams = context.params;
+    const optSkipHookWhen = options.skipHookWhen;
+    const skipHookWhen = isFunction(optSkipHookWhen) ? optSkipHookWhen(context) : optSkipHookWhen;
+    debug(`\n.....hook called. type ${context.type} method ${context.method} resolved skipHookWhen ${skipHookWhen}`);
 
-    resolverContent = isFunction(resolverContent) ? resolverContent(context) : resolverContent;
-
-    if (!isObject(resolverContent)) {
-      throwError(`Resolver context is typeof ${resolverContent} rather than object. (fgraphql)`, 105);
-    }
+    if (skipHookWhen) return context;
 
     query = isFunction(query) ? query(context) : query;
 
     if (!isObject(query)) {
-      throwError(`Query is typeof ${query} rather than object. (fgraphql)`, 102);
-    }
-
-    const topQueryProps = Object.keys(query);
-    if (options.queryIsProperGraphQL && topQueryProps.length !== 1) {
-      throwError('Only 1 type prop allowed at query root when proper GraphQL. (fgraphql)', 103);
+      throwError(`Resolved query is typeof ${typeof query} rather than object. (fgraphql)`, 102);
     }
 
     if (!ourResolvers) {
       ourResolvers = resolvers(context.app, runTime);
-      debug(`ourResolvers have types ${Object.keys(ourResolvers)}`);
+      debug(`ourResolvers has Types ${Object.keys(ourResolvers)}`);
     }
 
     if (!ourResolvers[recordType]) {
       throwError(`recordType ${recordType} not found in resolvers. (fgraphql)`, 104);
     }
 
-    options.inclAllFields = context.params.provider ?
+    options.inclAllFields = contextParams.provider ?
       options.inclAllFieldsClient : options.inclAllFieldsServer;
     debug(`inclAllField ${options.inclAllFields}`);
 
+    // Build content parameter passed to resolver functions.
+    const resolverContent = {
+      app: context.app,
+      provider: contextParams.provider,
+      user: contextParams.user,
+      authenticated: contextParams.authenticated,
+      batchLoaders: {},
+      cache: {},
+    };
+
+    (options.extraAuthProps || []).forEach(name => {
+      if (name in contextParams && !(name in resolverContent)) {
+        resolverContent[name] = contextParams[name];
+      }
+    });
+
+    // Static values used by fgraphql functions.
     const store = {
       feathersSdl,
       ourResolvers,
@@ -76,98 +93,143 @@ module.exports = function (options1 = {}) {
       resolverContent,
     };
 
-    const fields = options.queryIsProperGraphQL ? query[topQueryProps[0]] : query;
+    // Populate data.
     const recs = getItems(context);
 
-    await processRecords(recs, recordType, fields, store);
+    await processRecords(store, query, recs, recordType);
 
     replaceItems(context, recs);
     return context;
   };
 };
 
-async function processRecords(recs, type, fields, store, depth = 0) {
+// Process records recursively.
+async function processRecords(store, query, recs, type, depth = 0) {
+  if (!recs) return; // Catch no data to populate.
+
   recs = isArray(recs) ? recs : [recs];
-  debug(`processRecords depth ${depth} #recs ${recs.length} type ${type}`);
+  debug(`\nvvvvvvvvvv enter ${depth}`);
+  debug(`processRecords depth ${depth} #recs ${recs.length} Type ${type}`);
 
-  if (!isObject(store.ourResolvers[type])) {
-    throwError(`Resolvers for Type ${type} are typeof ${typeof type} not object. (fgraphql)`, 201);
+  const storeOurResolversType = store.ourResolvers[type];
+  if (!isObject(storeOurResolversType)) {
+    throwError(`Resolvers for Type ${type} are typeof ${typeof storeOurResolversType} not object. (fgraphql)`, 201);
   }
 
-  if (!isObject(fields)) {
-    throwError(`Fields at Type ${type} are typeof ${typeof fields} not object. (fgraphql)`, 202);
+  if (!isObject(query)) {
+    throwError(`query at Type ${type} are typeof ${typeof query} not object. (fgraphql)`, 202);
   }
 
-  const fieldNames = Object.keys(fields);
-
-  // for every record
   for (let j = 0, jlen = recs.length; j < jlen; j++) {
-    debug(`...type ${type} rec# ${j}`);
+    await processRecord(store, query, depth, recs[j], type, j);
+  }
 
-    const rec = recs[j];
-    const includes = [];
-    let includesHasRecFields = false;
+  debug(`^^^^^^^^^^ exit ${depth}\n`);
+}
 
-    // for every field, resolver
-    for (let i = 0, ilen = fieldNames.length; i < ilen; i++) {
-      const fieldName = fieldNames[i];
-      debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName}`);
+// Process the a record.
+async function processRecord(store, query, depth, rec, type, j) {
+  debug(`processRecord rec# ${j} typeof ${typeof rec} Type ${type}`);
+  if (!rec) return; // Catch any null values from resolvers.
 
-      // One way to include/exclude rec fields is to give their names a falsey value.
-      // _args and _none are not rec field names.
-      if (fields[fieldName] && fieldName !== '_args' && fieldName !== '_none') {
-        includes.push(fieldName);
+  const allNamesInQuery = [];
+  const recFieldNamesInQuery = [];
 
-        if (store.ourResolvers[type][fieldName]) {
-          debug('has resolver');
-          await resolverExists();
-        } else {
-          debug('no resolver');
-          includesHasRecFields = true;
-        }
+  // Process every query item.
+  const queryPropNames = Object.keys(query);
+  for (let i = 0, ilen = queryPropNames.length; i < ilen; i++) {
+    const fieldName = queryPropNames[i];
+    await processRecordQuery(store, query, depth, rec, fieldName, type, allNamesInQuery, recFieldNamesInQuery, j, i);
+  }
+
+  // Retain only record fields selected
+  debug(`field names found ${allNamesInQuery}`);
+  if (recFieldNamesInQuery.length || !store.options.inclAllFields || queryPropNames.includes('_none')) {
+    // recs[0] may have been created by [rec] so can't replace array elem
+    Object.keys(rec).forEach(key => {
+      if (!allNamesInQuery.includes(key)) {
+        delete rec[key];
       }
+    });
+  }
+}
 
-      // eslint-disable-next-line no-inner-declarations
-      async function resolverExists() {
-        let args;
+// Process one query field for a record.
+async function processRecordQuery(store, query, depth, rec, fieldName, type, allNamesInQuery, recFieldNamesInQuery, j, i) {
+  debug(`\nprocessRecordQuery rec# ${j} Type ${type} field# ${i} name ${fieldName}`);
 
-        if (!isFunction(store.ourResolvers[type][fieldName])) {
-          throwError(`Resolver for Type ${type} field ${fieldName} is typeof ${typeof type} not function. (fgraphql)`, 203);
-        }
+  // One way to include/exclude rec fields is to give their names a falsey value.
+  // _args and _none are not record field names but special purpose
+  if (query[fieldName] && fieldName !== '_args' && fieldName !== '_none') {
+    allNamesInQuery.push(fieldName);
 
-        args = isObject(fields[fieldName]) ? fields[fieldName]._args : undefined;
-        if (args) debug(`resolver args ${JSON.stringify(args)}`);
-
-        rec[fieldName] = await store.ourResolvers[type][fieldName](rec, args || {}, store.resolverContent);
-        debug(`resolver returned ${isArray(rec[fieldName]) ? `${rec[fieldName].length} recs` : 'one obj'}`);
-
-        const nextType = store.feathersSdl[type][fieldName].typeof;
-        debug(`.type ${type} rec# ${j} field# ${i} name ${fieldName} next type ${nextType}`);
-
-        if (store.ourResolvers[nextType] && isObject(fields[fieldName])) { // ignore String, etc.
-          await processRecords(rec[fieldName], nextType, fields[fieldName], store, depth + 1);
-        }
-      }
-    }
-
-    // Retain only record fields selected
-    debug(`field names found ${includesHasRecFields} incl names ${includes}`);
-    if (includesHasRecFields || !store.options.inclAllFields || fieldNames.includes('_none')) {
-      // recs[0] may have been created by [rec] so can't replace array elem
-      const oldRec = recs[j];
-      const oldRecProps = Object.keys(oldRec);
-
-      oldRecProps.forEach(key => {
-        if (!includes.includes(key)) {
-          delete oldRec[key];
-        }
-      });
+    if (store.ourResolvers[type][fieldName]) {
+      await processRecordFieldResolver(store, query, depth, rec, fieldName, type);
+    } else {
+      debug('is not resolver call');
+      recFieldNamesInQuery.push(fieldName);
     }
   }
 }
 
-function convertSdlToFeathersSchemaObject(schemaDefinitionLanguage) {
-  const graphQLSchemaObj = graphqlParse(schemaDefinitionLanguage);
+// Process a resolver call.
+async function processRecordFieldResolver(store, query, depth, rec, fieldName, type) {
+  debug('is resolver call');
+  const ourQuery = store.feathersSdl[type][fieldName];
+  const ourResolver = store.ourResolvers[type][fieldName];
+  let args;
+
+  if (!isFunction(ourResolver)) {
+    throwError(`Resolver for Type ${type} fieldName ${fieldName} is typeof ${typeof ourResolver} not function. (fgraphql)`, 203);
+  }
+
+  args = isObject(query[fieldName]) ? query[fieldName]._args : undefined;
+  debug(`resolver listType ${ourQuery.listType} args ${JSON.stringify(args)}`);
+
+  // Call resolver function.
+  const rawResult = await ourResolver(rec, args || {}, store.resolverContent);
+  debug(`resolver returned typeof ${isArray(rawResult) ? `array #recs ${rawResult.length}` : typeof rawResult}`);
+
+  // Convert rawResult to query requirements.
+  const result = convertResolverResult(rawResult, ourQuery, fieldName, type);
+  if (isArray(rawResult !== isArray(result) || typeof rawResult !== typeof result)) {
+    debug(`.....resolver result converted to typeof ${isArray(result) ? `array #recs ${result.length}` : typeof result}`);
+  }
+  rec[fieldName] = result;
+
+  const nextType = ourQuery.typeof;
+  debug(`Type ${type} fieldName ${fieldName} next Type ${nextType}`);
+
+  // Populate returned records if their query defn has more fields or Types.
+  // Ignore resolvers returning base values like string.
+  if (store.ourResolvers[nextType] && isObject(query[fieldName])) {
+    await processRecords(store, query[fieldName], result, nextType, depth + 1);
+  } else {
+    debug('no population of results required');
+  }
+}
+
+// Convert result of resolver function to match query field requirements.
+function convertResolverResult(result, ourQuery, fieldName, type) {
+  if (result === null || result === undefined) {
+    return ourQuery.listType ? [] : null;
+  }
+
+  if (ourQuery.listType) {
+    if (!isArray(result)) return [result];
+  } else if (isArray(result)) {
+    if (result.length > 1) {
+      throwError(`Query listType true. Resolver for Type ${type} fieldName ${fieldName} result is array len ${result.length} (fgraphql)`, 204);
+    }
+
+    return result[0];
+  }
+
+  return result;
+}
+
+function convertSdlToFeathersSchemaObject(schemaDefinitionLanguage, parse) {
+  const graphQLSchemaObj = parse(schemaDefinitionLanguage);
   //inspector('graphQLSchemaObj', graphQLSchemaObj)
   return convertDocument(graphQLSchemaObj);
 }
@@ -198,7 +260,7 @@ function convertObjectTypeDefinition(definition, definitionIndex) {
   }
 
   const objectTypeName = convertName(definition.name, `Type# ${definitionIndex}`);
-  if (objectTypeName === 'Query') return [null, null];
+  if (graphqlActions.includes(objectTypeName)) return [null, null];
 
   definition.fields.forEach(field => {
     const [fieldName, fieldDefinition] = convertFieldDefinition(field, `Type ${objectTypeName}`);

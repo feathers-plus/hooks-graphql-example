@@ -10,6 +10,7 @@ const fgraphql = require('../../hooks/fgraphql');
 const { parse } = require('graphql');
 const schemaDefinitionLanguage = require('../../services/graphql/graphql.schemas');
 const serviceResolvers = require('../../services/graphql/service.resolvers');
+const populate = require('./users.populate.js');
 // !end
 
 // !<DEFAULT> code: used
@@ -50,8 +51,48 @@ let moduleExports = {
     // firstName, lastName, draft, body are fields stored in their respective records.
     // fullName, posts, author, comments, followed_by, follower, following, followee, likes, comment
     // are created by calls to resolver functions.
-    find: fgraphql({
+    find: populate,
+    /*
+      query = () => ({ // query or func returning query
+    fullName: {},
+    posts: {
+      _args: { query: {  } }, // { key: any, query: { ... }, params: { ... }
+      author: {
+        firstName: 1,
+        fullName: 1, // {} or '' or 1 doesn't matter as no props inside would-have-been {}
+        posts: {
+          draft: 1,
+        },
+      },
+    },
+    comments: {},
+    followed_by: {
+      foo: 1, // non-resolver name looks like field name. forces drop of real fields
+      follower: {
+        foo: 1,
+        fullName: 1,
+      }
+    },
+    following: {
+      foo: 1,
+      followee: {
+        foo: 1,
+        fullName: 1,
+      },
+    },
+    likes: {
+      author: {
+        firstName: 1,
+        lastName: 1,
+      },
+      comment: {
+        body: 1
+      },
+    },
+  });
+    fgraphql({
       parse,
+      runTime,
       schema: schemaDefinitionLanguage, //
       resolvers: serviceResolvers, // could also be ../../services/graphql/batchloader.resolvers
       recordType: 'User', // the Type of the records returned by the service call
@@ -100,11 +141,12 @@ let moduleExports = {
         inclAllFieldsClient: true, // called on client
       },
     }),
-    get: [],
-    create: [],
+    */
+    get: [populate],
+    create: [populate],
     update: [],
     patch: [],
-    remove: []
+    remove: [populate]
     // !end
   },
 

@@ -14,7 +14,7 @@ type User {
   likes: [Like!]
 }`;
 
-module.exports = {s, r, q, o, c, a, SDL };
+module.exports = {s, r, q, o, a, SDL };
 
 // schemas
 function s(typ) {
@@ -63,9 +63,29 @@ type Comment {
   author: User
 }`;
 
+  const C0 = `
+type User {
+  _id: ID
+  firstName: String
+  lastName: String
+  fullName: String
+}`;
+
+  const C1 = `
+type User {
+  _id: ID
+  firstName: String
+  lastName: String
+  fullName: [String]
+}`;
+
   switch (typ) {
   case 'str':
     return SDL1;
+  case 'cnv0':
+    return C0;
+  case 'cnv1':
+    return C1;
   case 'fcn':
     return () => SDL1;
   case 'obj':
@@ -118,6 +138,25 @@ function r(typ) {
       };
     case 'err1':
       return { User: { fullName: 'foo' } };
+
+    case 'array2':
+      return {
+        User: {
+          fullName: () => [{ fullName: 'foo' }, { fullName: 'foo' }],
+        }
+      };
+    case 'undefin':
+      return {
+        User: {
+          fullName: () => undefined,
+        }
+      };
+    case 'array1':
+      return {
+        User: {
+          fullName: parent => [`${parent.first} ${parent.last}`],
+        }
+      };
 
     case 'S2':
       return {
@@ -188,28 +227,19 @@ function q(typ) {
   switch (typ) {
   /* eslint-disable */
   case 'obj':
-    return                    { fullName: {}                                    }   ;
+    return        { fullName: {}                                    }   ;
   case 'none':
-    return                    { fullName: {},                        _none: {}  }   ;
+    return        { fullName: {},                        _none: {}  }   ;
   case 'value1':
-    return                    { fullName: 1,  first: 1,    last: 1              }   ;
+    return        { fullName: 1,  first: 1,    last: 1              }   ;
   case 'value0':
-    return                    { fullName: 0,  first: 1,    last: 0              }   ;
+    return        { fullName: 0,  first: 1,    last: 0              }   ;
   case 'falsey':
-    return                    { fullName: '', first: null, last: 1              }   ;
-  case 'obj+':
-    return        { findUser: { fullName: {}                                    } } ;
+    return        { fullName: '', first: null, last: 1              }   ;
   case 'fcn':
-    return () => (            { fullName: {}                                    }  );
-  case 'fcn+':
-    return () => ({ findUser: { fullName: {}                                    } });
+    return () => ({ fullName: {}                                    }  );
   case 'err1':
     return undefined;
-  case 'err2':
-    return {
-      findUser: { fullName: {} },
-      getUser:  {}
-    };
 
   case 'S2post':
     return { posts: {}               }   ;
@@ -290,26 +320,26 @@ function o(typ) {
       inclAllFieldsServer: true,
       inclAllFieldsClient: true,
     };
-  case 'graph':
-    return { queryIsProperGraphQL: true };
   case 'server-':
     return { inclAllFieldsServer: false };
   case 'client-':
     return { inclAllFieldsClient: false };
   case 'loop':
     return { skipHookWhen: () => false  };
+  case 'prop-':
+    return {
+      inclAllFieldsServer: true,
+      inclAllFieldsClient: true,
+      extraAuthProps: 1,
+    };
+  case 'prop+':
+    return {
+      inclAllFieldsServer: true,
+      inclAllFieldsClient: true,
+      extraAuthProps: ['foo']
+    };
   default:
     throw new Error(`Invalid typ ${typ} for "o" function.`);
-  }
-}
-
-// resolverContent
-function c(typ) {
-  switch (typ) {
-  case 'ok':
-    return { foo: 'bar'};
-  default:
-    throw new Error(`Invalid typ ${typ} for "c" function.`);
   }
 }
 
@@ -317,16 +347,22 @@ function c(typ) {
 function a(typ) {
   switch (typ) {
   /* eslint-disable */
+  case 'janeNull' :
+    return { first: 'Jane', last: 'Doe', fullName: null         };
   case 'janeFull' :
-    return { first: 'Jane', last: 'Doe', fullName: 'Jane Doe' };
+    return { first: 'Jane', last: 'Doe', fullName: 'Jane Doe'   };
+  case 'janeArray' :
+    return { first: 'Jane', last: 'Doe', fullName: ['Jane Doe'] };
+  case 'janeArray0' :
+    return { first: 'Jane', last: 'Doe', fullName: []           };
   case 'janeFull-' :
-    return {                             fullName: 'Jane Doe' };
+    return {                             fullName: 'Jane Doe'   };
   case 'janeMess' :
-    return { first: 'foo',  last: 'Doe', fullName: 'Jane Doe' };
+    return { first: 'foo',  last: 'Doe', fullName: 'Jane Doe'   };
   case 'jane0' :
-    return { first: 'Jane'                                    };
+    return { first: 'Jane'                                      };
   case 'janeFalsey' :
-    return {                last: 'Doe'                       };
+    return {                last: 'Doe'                         };
 
   case 'S2post' :
     return {

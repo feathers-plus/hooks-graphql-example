@@ -27,14 +27,18 @@ server.on('listening', async () => {
   // !code: listening // !end
   await seedData(app);
   // !code: listening1
-  const recs = await app.service('users').find({ query: { $limit: 1 }});
-  inspector('\n\nresult', recs);
+  // const recs = await app.service('users').get('000001', { paginate: false });
+  const recs = await app.service('users').find({ query: { _id: '000002' }, paginate: false });
+  console.log('.....populated results');
+  console.log('');
+  inspector('', recs);
+  console.log('');
   // !end
 });
 
 // !code: funcs
 function inspector(desc, obj) {
-  console.log(desc);
+  if (desc) console.log(desc);
   console.log(inspect(obj, { colors: true, depth: 9 }));
 }
 // !end
