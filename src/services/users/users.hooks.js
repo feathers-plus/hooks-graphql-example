@@ -4,12 +4,7 @@ const commonHooks = require('feathers-hooks-common');
 const { authenticate } = require('@feathersjs/authentication').hooks;
 // eslint-disable-next-line no-unused-vars
 const { hashPassword, protect } = require('@feathersjs/authentication-local').hooks;
-// eslint-disable-next-line no-unused-vars
-const fgraphql = require('../../hooks/fgraphql');
 // !code: imports
-const { parse } = require('graphql');
-const schemaDefinitionLanguage = require('../../services/graphql/graphql.schemas');
-const serviceResolvers = require('../../services/graphql/service.resolvers');
 const populate = require('./users.populate.js');
 // !end
 

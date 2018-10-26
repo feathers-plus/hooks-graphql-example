@@ -1,7 +1,7 @@
 
 // fgraphql populate hooks for service `users`. (Can be re-generated.)
 const runTime = require('@feathers-plus/graphql/lib/run-time');
-const fgraphql = require('../../hooks/fgraphql');
+const { fgraphql } = require('feathers-hooks-common');
 const { parse } = require('graphql');
 // !<DEFAULT> code: graphql
 const schemaDefinitionLanguage = require('../../services/graphql/graphql.schemas');
@@ -113,12 +113,8 @@ const usersPopulate = context => {
 
   // Setup query appropriate to circumstances in context
   if (context.foo) return context;
-  let query = {};
 
-
-
-
-  query = {
+  let query = {
     fullName: {},
     following: {
       follower: {
