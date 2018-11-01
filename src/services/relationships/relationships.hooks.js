@@ -2,6 +2,8 @@
 // Hooks for service `relationships`. (Can be re-generated.)
 const commonHooks = require('feathers-hooks-common');
 const { authenticate } = require('@feathersjs/authentication').hooks;
+// eslint-disable-next-line no-unused-vars
+const relationshipsPopulate = require('./relationships.populate');
 // !code: imports // !end
 
 // !<DEFAULT> code: used

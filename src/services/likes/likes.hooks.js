@@ -2,6 +2,8 @@
 // Hooks for service `likes`. (Can be re-generated.)
 const commonHooks = require('feathers-hooks-common');
 const { authenticate } = require('@feathersjs/authentication').hooks;
+// eslint-disable-next-line no-unused-vars
+const likesPopulate = require('./likes.populate');
 // !code: imports // !end
 
 // !<DEFAULT> code: used
@@ -19,7 +21,7 @@ let moduleExports = {
     //   all   : authenticate('jwt')
     // !<DEFAULT> code: before
     all: [ authenticate('jwt') ],
-    find: [],
+    find: [likesPopulate],
     get: [],
     create: [],
     update: [],

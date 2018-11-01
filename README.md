@@ -1,16 +1,16 @@
 # hooks-graphql-example
 
-> Project hooks-graphql-example
+> Example use of the FeathersJS fgraphql hook.
 
 ## About
 
-This project uses [FeathersJS](http://feathersjs.com). An open source web framework for building modern real-time applications.
+This app shows the use of the fgraphql hook from @feathers-plus/feathers-hooks-common.
+The app was generated using @feathers-plus/cli (a.k.a. cli+).
 
 ## Getting Started
 
-Getting up and running is as easy as 1, 2, 3.
+1. Clone the repo to your machine.
 
-1. Make sure you have [NodeJS](https://nodejs.org/) and [npm](https://www.npmjs.com/) installed.
 2. Install your dependencies
 
     ```
@@ -23,36 +23,45 @@ Getting up and running is as easy as 1, 2, 3.
     npm start
     ```
 
-## Testing
+4. The console will display populated data from the users service.    
 
-Simply run `npm test` and all your tests in the `test/` directory will be run.
+## Other commands
 
-## Scaffolding
+```
+feathers-plus generate fakes            # Generate new fake data.
+npm start                               # Start the server.
+npm run start:seed                      # Start the server and reseed the database with the fake data.
+```
+
+## Modules of interest
+
+```
+src/services/users/users.populate.js    # Configuring the fgraphql hook for the users service.
+src/services/users/users.hooks.js       # Attaching the fgraphql hook to the users service.
+src/index.js                            # Running users.find() on startup.
+```
+
+## cli+
 
 Feathers-plus has a powerful command line interface. Here are a few things it can do:
 
 ```
-$ npm install -g @feathers-plus/cli          # Install Feathers-plus CLI
+$ npm install -g @feathers-plus/cli     # Install cli+
 
-$ feathers-plus generate options             # Specify options for this app
-$ feathers-plus generate app                 # Generate scaffolding for app
-$ feathers generate authentication           # Generate authentication and user-entity service
-$ feathers-plus generate secret              # Generate a new secret for authentication
-$ feathers-plus generate service             # Generate a new service with its model
-$ feathers-plus generate graphql             # Generate a GraphQL endp;oint for services
-$ feathers-plus generate all                 # Regenerate the entire app
-$ feathers-plus help                         # Show all commands
+$ feathers-plus generate options        # Specify options for this app
+$ feathers-plus generate app            # Generate scaffolding for app
+$ feathers-plus generate authentication # Generate authentication and user-entity service
+$ feathers-plus generate secret         # Generate a new secret for authentication
+$ feathers-plus generate service        # Generate a new service with its model
+$ feathers-plus generate hook           # Generate a hook
+$ feathers-plus generate graphql        # Generate a GraphQL endpoint for services
+$ feathers-plus generate fakes          # Generate fake data
+$ feathers-plus generate test           # Generate a test
 ```
 
 ## Help
 
 For more information on all the things you can do, visit [the generator](https://generator.feathers-plus.com/), [FeathersJS](http://docs.feathersjs.com) and [extensions](https://feathers-plus.github.io/).
-
-## Changelog
-
-__0.1.0__
-
-- Initial release
 
 ## License
 
