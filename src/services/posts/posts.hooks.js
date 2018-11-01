@@ -3,8 +3,6 @@
 const commonHooks = require('feathers-hooks-common');
 const { authenticate } = require('@feathersjs/authentication').hooks;
 // eslint-disable-next-line no-unused-vars
-const fgraphql = require('../../hooks/fgraphql');
-// eslint-disable-next-line no-unused-vars
 const postsPopulate = require('./posts.populate');
 // !code: imports // !end
 

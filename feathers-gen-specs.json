@@ -75,18 +75,6 @@
       "graphql": true
     }
   },
-  "hooks": {
-    "fgraphql": {
-      "fileName": "fgraphql",
-      "camelName": "fgraphql",
-      "ifMulti": "y",
-      "multiServices": [
-        "posts",
-        "users"
-      ],
-      "singleService": ""
-    }
-  },
   "authentication": {
     "strategies": [
       "local"

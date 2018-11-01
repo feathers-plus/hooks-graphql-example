@@ -5,8 +5,6 @@ const { authenticate } = require('@feathersjs/authentication').hooks;
 // eslint-disable-next-line no-unused-vars
 const { hashPassword, protect } = require('@feathersjs/authentication-local').hooks;
 // eslint-disable-next-line no-unused-vars
-const fgraphql = require('../../hooks/fgraphql');
-// eslint-disable-next-line no-unused-vars
 const usersPopulate = require('./users.populate');
 // !code: imports // !end
 
