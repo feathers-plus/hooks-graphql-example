@@ -5,7 +5,8 @@
 ## About
 
 This app shows the use of the fgraphql hook from @feathers-plus/feathers-hooks-common.
-The app was generated using @feathers-plus/cli (a.k.a. cli+).
+
+This app was generated using @feathers-plus/cli (a.k.a. cli+).
 
 ## Getting Started
 
@@ -14,7 +15,8 @@ The app was generated using @feathers-plus/cli (a.k.a. cli+).
 2. Install your dependencies
 
     ```
-    cd path/to/hooks-graphql-example; npm install
+    cd path/to/hooks-graphql-example
+    npm install
     ```
 
 3. Start your app
@@ -28,7 +30,9 @@ The app was generated using @feathers-plus/cli (a.k.a. cli+).
 ## Other commands
 
 ```
-feathers-plus generate fakes            # Generate new fake data.
+npm install -g @feathers-plus/cli       # Install cli+
+feathers-plus generate fakes            # Generate new fake data with cli+
+
 npm start                               # Start the server.
 npm run start:seed                      # Start the server and reseed the database with the fake data.
 ```
@@ -36,9 +40,9 @@ npm run start:seed                      # Start the server and reseed the databa
 ## Modules of interest
 
 ```
-src/services/users/users.populate.js    # Configuring the fgraphql hook for the users service.
-src/services/users/users.hooks.js       # Attaching the fgraphql hook to the users service.
-src/index.js                            # Running users.find() on startup.
+src/services/users/users.populate.js    # Configure the fgraphql hook for the users service.
+src/services/users/users.hooks.js       # Attach the fgraphql hook to the users service.
+src/index.js                            # Run users.find() on startup.
 ```
 
 ## cli+
@@ -54,9 +58,10 @@ $ feathers-plus generate authentication # Generate authentication and user-entit
 $ feathers-plus generate secret         # Generate a new secret for authentication
 $ feathers-plus generate service        # Generate a new service with its model
 $ feathers-plus generate hook           # Generate a hook
-$ feathers-plus generate graphql        # Generate a GraphQL endpoint for services
+$ feathers-plus generate graphql        # Generate a GraphQL endpoint for the services
 $ feathers-plus generate fakes          # Generate fake data
 $ feathers-plus generate test           # Generate a test
+$ feathers-plus generate all            # Regenerate the entire app
 ```
 
 ## Help
